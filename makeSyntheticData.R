@@ -2,6 +2,7 @@
 #
 # This script was used to create some simulated data for users to play around with.
 # Note that the simulated data has no relationship between variables and does not exactly line up with the manuscript.
+# Also note you cannot make this script run as I have not included the models and raw data.
 #
 
 library(tidyverse)
@@ -93,3 +94,8 @@ nz.sample <- mutate(
   hazardous = ifelse(runif(nz.size) < fitted(nz.mediation, newdata=nz.sample, subset = nz.posteriors$rows)[,1,'hazardous'], 1, 0),
   k10high = ifelse(runif(nz.size) < fitted(nz.mediation, newdata=nz.sample, subset = nz.posteriors$rows)[,1,'k10high'], 1, 0)
   )
+
+########################################### Save datasets
+
+saveRDS(nz.sample, "data/syntheticNz.RDS")
+saveRDS(us.sample, "data/syntheticUs.RDS")
