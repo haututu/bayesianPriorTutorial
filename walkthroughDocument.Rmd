@@ -1,0 +1,26 @@
+---
+title: "Example construction of informative Bayesian priors for substance research with minority groups"
+author: "Taylor Winter"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+
+## Modelling the United States data
+
+## Modelling New Zealand data
+
+### Constructing priors
+
+### Basic model
+
+### Mediation model
+
+## Conclusions
