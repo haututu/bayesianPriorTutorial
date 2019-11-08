@@ -10,7 +10,7 @@
 
 <meta name="author" content="Taylor Winter" />
 
-<meta name="date" content="2019-11-07" />
+<meta name="date" content="2019-11-08" />
 
 <title>Example construction of informative Bayesian priors for substance research with minority groups</title>
 
@@ -1420,6 +1420,73 @@ border-bottom: 1px solid #fcfcfc;
 </script>
 
 
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(title);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    background-color: #ffffff;
+    color: #a0a0a0;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #a0a0a0;  padding-left: 4px; }
+div.sourceCode
+  { color: #1f1c1b; background-color: #ffffff; }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span. { color: #1f1c1b; } /* Normal */
+code span.al { color: #bf0303; background-color: #f7e6e6; font-weight: bold; } /* Alert */
+code span.an { color: #ca60ca; } /* Annotation */
+code span.at { color: #0057ae; } /* Attribute */
+code span.bn { color: #b08000; } /* BaseN */
+code span.bu { color: #644a9b; font-weight: bold; } /* BuiltIn */
+code span.cf { color: #1f1c1b; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #924c9d; } /* Char */
+code span.cn { color: #aa5500; } /* Constant */
+code span.co { color: #898887; } /* Comment */
+code span.cv { color: #0095ff; } /* CommentVar */
+code span.do { color: #607880; } /* Documentation */
+code span.dt { color: #0057ae; } /* DataType */
+code span.dv { color: #b08000; } /* DecVal */
+code span.er { color: #bf0303; text-decoration: underline; } /* Error */
+code span.ex { color: #0095ff; font-weight: bold; } /* Extension */
+code span.fl { color: #b08000; } /* Float */
+code span.fu { color: #644a9b; } /* Function */
+code span.im { color: #ff5500; } /* Import */
+code span.in { color: #b08000; } /* Information */
+code span.kw { color: #1f1c1b; font-weight: bold; } /* Keyword */
+code span.op { color: #1f1c1b; } /* Operator */
+code span.ot { color: #006e28; } /* Other */
+code span.pp { color: #006e28; } /* Preprocessor */
+code span.re { color: #0057ae; background-color: #e0e9f8; } /* RegionMarker */
+code span.sc { color: #3daee9; } /* SpecialChar */
+code span.ss { color: #ff5500; } /* SpecialString */
+code span.st { color: #bf0303; } /* String */
+code span.va { color: #0057ae; } /* Variable */
+code span.vs { color: #bf0303; } /* VerbatimString */
+code span.wa { color: #bf0303; } /* Warning */
+</style>
 
 
 </head>
@@ -1453,8 +1520,8 @@ $(document).ready(function () {
     <div id="text-table-of-contents">
       <ul>
       <li><a href="#overview">Overview</a></li>
-      <li><a href="#modelling-the-united-states-data">Modelling the United States data</a></li>
-      <li><a href="#modelling-new-zealand-data">Modelling New Zealand data</a></li>
+      <li><a href="#modelling-the-united-states-data-nsduh">Modelling the United States data (NSDUH)</a></li>
+      <li><a href="#modelling-new-zealand-data-nzhs">Modelling New Zealand data (NZHS)</a></li>
       <li><a href="#conclusions">Conclusions</a></li>
       </ul>
     </div>
@@ -1463,12 +1530,33 @@ $(document).ready(function () {
 <div id="main">
 <div id="overview" class="section level2">
 <h2>Overview</h2>
+<p>This document is a walkthrough for an associated tutorial manuscript in review with the journal Addiction<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> and accompanies <code>R</code> code in the following <a href="https://github.com/haututu/bayesianPriorTutorial">GitHub repository</a>. We use a large dataset to investigate if sexual minorities (SMs) are at higher risk of psychological distress relative to non-SMs (nSMs). We then constract priors based on the large survey model and run a similar model using a smaller survey. Lastly, we use priors to inform part of a mediation analysis to get a more reliable understanding on how much stress can mediate the increased likelihood of hazarous drinking expressed by SMs relative to nSMs.</p>
+<p>In the associated manuscript, we used the <a href="https://nsduhweb.rti.org/respweb/homepage.cfm">National Survey on Drug Use and Health</a> (NSDUH; n=83,661) to inform our smaller survey, the <a href="https://www.health.govt.nz/nz-health-statistics/national-collections-and-surveys/surveys/new-zealand-health-survey">New Zealand Health Survey</a> (NZHS, n=24098). In the former case, the dataset is huge, and in the latter, the data is provided by application only. Hence, we have created created smaller datasets that will show similar trends as presented in our study albeit with slightly different coefficients (See <code>makeSyntheticData.R</code> for details on how we created datasets).</p>
+<p>The analysis relies on the <code>tidyverse</code> and a Bayesian regression package called <code>brms</code><a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a>. This document does not cover these packages and we would encourage readers to consult the <code>brms</code> vignettes or any basic R tutorials for <code>tidyverse</code> walkthroughs.</p>
 </div>
-<div id="modelling-the-united-states-data" class="section level2">
-<h2>Modelling the United States data</h2>
+<div id="modelling-the-united-states-data-nsduh" class="section level2">
+<h2>Modelling the United States data (NSDUH)</h2>
+<p>We start with the script named <code>usModel.R</code>, by loading the neccesary libraries and the <code>syntheticUs.RDS</code> file. You can now check and plot the data if you wish. The data contains five variables:</p>
+<ol style="list-style-type: decimal">
+<li>SEXIDENT - Sexual identity; Heterosexual (1), Homosexual (2), or Bisexual(3)</li>
+<li>AGE2 - A ordinal variable with different age groupings (labels attached to variable)</li>
+<li>IRFAMIN3 - Total family income as an ordinal variable (labels attached to variable)</li>
+<li>IRSEX - Categorical variable either male (1) or female (2)</li>
+<li>SPDMON - Is a binomial variable denoting an experience of psychological distress in the last six months, either no stress (0) or stress (1)</li>
+</ol>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">library</span>(tidyverse)</a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="kw">library</span>(brms)</a>
+<a class="sourceLine" id="cb1-3" title="3"></a>
+<a class="sourceLine" id="cb1-4" title="4">syntheticUs &lt;-<span class="st"> </span><span class="kw">readRDS</span>(<span class="st">&quot;data/syntheticUs.RDS&quot;</span>)</a></code></pre></div>
+<p>We then construct some simple weak priors for the logistic regression, this is out of neccesity because the dataset is so huge in our study that it would take a day to run. When using Stan as your MCMC sampler, even very week priors can have a major impact on your convergence time without influencing your posterior at all.</p>
+<p>We are specifying priors as normal distributions, for example the coefficient <code>IRSEX2</code> has a normal distrtribution with a mean of one and standard deviation of one (note the scale is log odds for logistic regression). This means we believe the odds of females having higher stress than males has 95% probability of falling between an odds of 0.14 and 7.38… it shoudl be particularly obvious why this prior would not impact on our posterior but certainly rules out a large range of increadibly unlikely odds ratios.</p>
+<p>A further point you may note below, is that the age and income vairables start with <code>mo~</code>. This is short for monotonic, which is a type of mathematical function that allows you to model ordered variables. As we are using monotonic functions in our <code>brms</code> model, our variables gain the <code>mo~</code> prefix. Similarly, as sex is a categorical variable, the effect of females is modelled in reference to males and we therefore add the suffix <code>~2</code> to acknowledge this fact.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1">priors &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="kw">prior</span>(<span class="st">&quot;normal(1, 1)&quot;</span>, <span class="dt">coef=</span><span class="st">&quot;IRSEX2&quot;</span>),</a>
+<a class="sourceLine" id="cb2-2" title="2">            <span class="kw">prior</span>(<span class="st">&quot;normal(-1, 1)&quot;</span>, <span class="dt">coef=</span><span class="st">&quot;moAGE2&quot;</span>),</a>
+<a class="sourceLine" id="cb2-3" title="3">            <span class="kw">prior</span>(<span class="st">&quot;normal(-1, 1)&quot;</span>, <span class="dt">coef=</span><span class="st">&quot;moIRFAMIN3&quot;</span>))</a></code></pre></div>
 </div>
-<div id="modelling-new-zealand-data" class="section level2">
-<h2>Modelling New Zealand data</h2>
+<div id="modelling-new-zealand-data-nzhs" class="section level2">
+<h2>Modelling New Zealand data (NZHS)</h2>
 <div id="constructing-priors" class="section level3">
 <h3>Constructing priors</h3>
 </div>
@@ -1482,6 +1570,13 @@ $(document).ready(function () {
 <div id="conclusions" class="section level2">
 <h2>Conclusions</h2>
 </div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Winter, T., Riordan, B., Surace, A., &amp; Jose, P. (In Review). A comparison of Bayesian and classical statistics for substance research with sexual minorities<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn2"><p>Paul-Christian Bürkner (2017). brms: An R Package for Bayesian Multilevel Models Using Stan. Journal of Statistical Software, 80(1), 1-28. <a href="doi:10.18637/jss.v080.i01" class="uri">doi:10.18637/jss.v080.i01</a><a href="#fnref2" class="footnote-back">↩</a></p></li>
+</ol>
+</div>
 </div>
 
 
@@ -1489,7 +1584,7 @@ $(document).ready(function () {
 
 <div id="postamble" data-toggle="wy-nav-shift" class="status">
 <p class="author"><span class="glyphicon glyphicon-user"></span> Taylor Winter</p>
-<p class="date"><span class="glyphicon glyphicon-calendar"></span> 2019-11-07</p>
+<p class="date"><span class="glyphicon glyphicon-calendar"></span> 2019-11-08</p>
 </div>
 
 

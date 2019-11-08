@@ -13,9 +13,70 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Overview
 
-## Modelling the United States data
+This document is a walkthrough for an associated tutorial manuscript in review with the journal Addiction[^1] and accompanies `R` code in the following [GitHub repository](https://github.com/haututu/bayesianPriorTutorial). We use a large dataset to investigate if sexual minorities (SMs) are at higher risk of psychological distress relative to non-SMs (nSMs). We then constract priors based on the large survey model and run a similar model using a smaller survey. Lastly, we use priors to inform part of a mediation analysis to get a more reliable understanding on how much stress can mediate the increased likelihood of hazarous drinking expressed by SMs relative to nSMs. 
 
-## Modelling New Zealand data
+In the associated manuscript, we used the [National Survey on Drug Use and Health](https://nsduhweb.rti.org/respweb/homepage.cfm) (NSDUH; n=83,661) to inform our smaller survey, the [New Zealand Health Survey](https://www.health.govt.nz/nz-health-statistics/national-collections-and-surveys/surveys/new-zealand-health-survey) (NZHS, n=24098). In the former case, the dataset is huge, and in the latter, the data is provided by application only. Hence, we have created created smaller datasets that will show similar trends as presented in our study albeit with slightly different coefficients (See `makeSyntheticData.R` for details on how we created datasets).
+
+The analysis relies on the `tidyverse` and a Bayesian regression package called `brms`[^2]. This document does not cover these packages and we would encourage readers to consult the `brms` vignettes or any basic R tutorials for `tidyverse` walkthroughs.
+
+[^1]: Winter, T., Riordan, B., Surace, A., & Jose, P. (In Review). A comparison of Bayesian and classical statistics for substance research with sexual minorities
+
+[^2]: Paul-Christian Bürkner (2017). brms: An R Package for Bayesian Multilevel Models Using Stan. Journal of
+  Statistical Software, 80(1), 1-28. doi:10.18637/jss.v080.i01
+
+## Modelling the United States data (NSDUH)
+
+We start with the script named `usModel.R`, by loading the neccesary libraries and the `syntheticUs.RDS` file. You can now check and plot the data if you wish. The data contains five variables:
+
+1. SEXIDENT - Sexual identity; Heterosexual (1), Homosexual (2), or Bisexual(3)
+2. AGE2 - A ordinal variable with different age groupings (labels attached to variable)
+3. IRFAMIN3 - Total family income as an ordinal variable (labels attached to variable)
+4. IRSEX - Categorical variable either male (1) or female (2)
+5. SPDMON - Is a binomial variable denoting an experience of psychological distress in the last six months, either no stress (0) or stress (1)
+
+```{r readUs, message=FALSE}
+library(tidyverse)
+library(brms)
+
+syntheticUs <- readRDS("data/syntheticUs.RDS") %>%
+  sample_frac(0.4)
+```
+
+We then construct some simple weak priors for the logistic regression, this is out of neccesity because the dataset is so huge in our study that it would take a day to run. When using Stan as your MCMC sampler, even very week priors can have a major impact on your convergence time without influencing your posterior at all.
+
+We are specifying priors as normal distributions, for example the coefficient `IRSEX2` has a normal distrtribution with a mean of one and standard deviation of one (note the scale is log odds for logistic regression). This means we believe the odds of females having higher stress than males has 95% probability of falling between an odds of 0.14 and 7.38... it shoudl be particularly obvious why this prior would not impact on our posterior but certainly rules out a large range of increadibly unlikely odds ratios.
+
+A further point you may note below, is that the age and income vairables start with `mo~`. This is short for monotonic, which is a type of mathematical function that allows you to model ordered variables. As we are using monotonic functions in our `brms` model, our variables gain the `mo~` prefix. Similarly, as sex is a categorical variable, the effect of females is modelled in reference to males and we therefore add the suffix `~2` to acknowledge this fact.
+
+
+```{r priorsUs}
+priors <- c(prior("normal(1, 1)", coef="IRSEX2"),
+            prior("normal(-1, 1)", coef="moAGE2"),
+            prior("normal(-1, 1)", coef="moIRFAMIN3"))
+```
+
+We can now model the US data. If you're familiar with `lme4` syntax then this is quite straight forward, we model stress (SPDMON) as a covariate with age (AGE2), sex (IRSEX), SM status (sexident), and family income (IRFAMIN3) as predictors. As mentioned, age and family income are ordinal variables and we capture this relationship by modelling a  monotonic effect, implemented by wrapping the variable with the `mo()` function.
+
+We then specify the family (response distribution), in this case we want a Bernoulli distribution which will conduct a traditional logistic regression. We parse our priors, and want to sample four chains across four CPU cores. It will take about five minutes to run. Feel free to reflect on our pain when running a sample of over 80,000 during this time.
+
+```{r modelUs, cache=TRUE}
+brms.us <- brm(
+  SPDMON ~ mo(AGE2) + IRSEX * SEXIDENT + mo(IRFAMIN3),
+  family = bernoulli(),
+  prior = priors,
+  cores = 4,
+  chains = 4,
+  data=syntheticUs
+  )
+```
+
+Finally, we can see the results of our logistic regression using the `summary()` function. It will output a bunch of simplex parameters which are pertaining to our monotonic effects, feel free to ignore them and focus on the population-level effects. It is these effects that will form the basis of our priors for the NZ data.
+
+```{r summaryUs}
+summary(brms.us)
+```
+
+## Modelling New Zealand data (NZHS)
 
 ### Constructing priors
 
