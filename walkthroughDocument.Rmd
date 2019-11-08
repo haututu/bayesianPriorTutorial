@@ -8,7 +8,9 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(kableExtra)
+opts_chunk$set(echo = TRUE)
 ```
 
 ## Overview
@@ -39,7 +41,7 @@ library(tidyverse)
 library(brms)
 
 syntheticUs <- readRDS("data/syntheticUs.RDS") %>%
-  sample_frac(0.4)
+  sample_frac(0.2)
 ```
 
 We then construct some simple weak priors for the logistic regression, this is out of neccesity because the dataset is so huge in our study that it would take a day to run. When using Stan as your MCMC sampler, even very week priors can have a major impact on your convergence time without influencing your posterior at all.
@@ -53,6 +55,7 @@ A further point you may note below, is that the age and income vairables start w
 priors <- c(prior("normal(1, 1)", coef="IRSEX2"),
             prior("normal(-1, 1)", coef="moAGE2"),
             prior("normal(-1, 1)", coef="moIRFAMIN3"))
+
 ```
 
 We can now model the US data. If you're familiar with `lme4` syntax then this is quite straight forward, we model stress (SPDMON) as a covariate with age (AGE2), sex (IRSEX), SM status (sexident), and family income (IRFAMIN3) as predictors. As mentioned, age and family income are ordinal variables and we capture this relationship by modelling a  monotonic effect, implemented by wrapping the variable with the `mo()` function.
@@ -63,22 +66,46 @@ We then specify the family (response distribution), in this case we want a Berno
 brms.us <- brm(
   SPDMON ~ mo(AGE2) + IRSEX * SEXIDENT + mo(IRFAMIN3),
   family = bernoulli(),
-  prior = priors,
+  prior = prior("normal(0, 2)", class="b"),
   cores = 4,
   chains = 4,
   data=syntheticUs
   )
 ```
 
-Finally, we can see the results of our logistic regression using the `summary()` function. It will output a bunch of simplex parameters which are pertaining to our monotonic effects, feel free to ignore them and focus on the population-level effects. It is these effects that will form the basis of our priors for the NZ data.
+Finally, we can see the results of our logistic regression using the `summary(brms.us)` function. It will output a bunch of simplex parameters which are pertaining to our monotonic effects, feel free to ignore them and focus on the population-level effects for the purpose of this walkthrough. The population-level effects that will form the basis of our priors for the NZ data. You will see in the table below we have extracted only the fixed effects (Table 1).
 
-```{r summaryUs}
-summary(brms.us)
+```{r fixef, echo=FALSE}
+fixef(brms.us) %>%
+  kable(caption = "<b>Table 1.</b> Fixed effects for the logistic regression model using US data") %>%
+  kable_styling(full_width = FALSE)
 ```
+
+As a couple of added tips, the extracted table is produced using `fixef(brms.us)` and the coefficients are, of course, logits. If you wanted to easily produce odds you can wrap the aforementioned function with an exponential function `exp(fixef(brms.us))`. You can also easily produce graphs of the marginal effects in the regression model using `marginal_effects(brms.us)`.
 
 ## Modelling New Zealand data (NZHS)
 
+We will break the following section up by first constructing the priors, running the same model in the NZ data that we presented above, then running a more complex mediation analysis. The code we are describing is presented in the `nzModel.R` script. You can start by loading the NZ data with the following code.
+
+```{r}
+syntheticNz <- readRDS("data/syntheticNz.RDS")
+```
+
 ### Constructing priors
+
+In our paper, we discuss using the coefficients and error terms from our US sample as priors for the NZ sample. However, we acknowledge that the two countries are quite different and we therefore decrease our certainty of the US based priors by doubling the error terms. We present the original priors used in our paper, but you can easily adjust them to the priors in the sample data or any other reasonably prior you have in mind. You can multiply the error terms easily with `fixef(brms.us)[,2] * 2`.
+
+```{r priorsNz}
+priors <- c(
+  prior("normal(-1.97, 0.5)", coef="age"),
+  prior("normal(-0.29, 0.1)", coef="sexM"),
+  prior("normal(-0.91, 0.4)", coef="nzdep2013"),
+  prior("normal(1.03, 0.18)", coef="sexidentGayDLesbian"),
+  prior("normal(1.18, 0.18)", coef="sexidentBisexual"),
+  prior("normal(-0.07, 0.2)", coef="sexM:sexidentGayDLesbian"),
+  prior("normal(-0.01, 0.2)", coef="sexM:sexidentBisexual")
+)
+```
 
 ### Basic model
 
