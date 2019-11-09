@@ -104,13 +104,13 @@ In our paper, we discuss using the coefficients and error terms from our US samp
 
 ```{r priorsNz}
 priors <- c(
-  prior("normal(-1.97, 0.5)", coef="age"),
-  prior("normal(-0.29, 0.1)", coef="sexM"),
-  prior("normal(-0.91, 0.4)", coef="nzdep2013"),
-  prior("normal(1.03, 0.18)", coef="sexidentGayDLesbian"),
-  prior("normal(1.18, 0.18)", coef="sexidentBisexual"),
-  prior("normal(-0.07, 0.2)", coef="sexM:sexidentGayDLesbian"),
-  prior("normal(-0.01, 0.2)", coef="sexM:sexidentBisexual")
+  prior("normal(-0.19, 0.06)", coef="age"),
+  prior("normal(0.23, 0.26)", coef="sexM"),
+  prior("normal(-0.19, 0.06)", coef="nzdep2013"),
+  prior("normal(1.64, 0.55)", coef="sexidentGayDLesbian"),
+  prior("normal(1.20, 0.60)", coef="sexidentBisexual"),
+  prior("normal(-0.4, 1.1)", coef="sexM:sexidentGayDLesbian"),
+  prior("normal(-0.07, 0.8)", coef="sexM:sexidentBisexual")
 )
 ```
 
@@ -175,14 +175,16 @@ fixef(brms.nz) %>%
   geom_point() +
   geom_errorbar() +
   coord_flip() +
-  labs(title="<b>Figure 1.</b> Comparison of coefficients from informative and non-informative models of the synthetic NZ sample")
+  labs(title="Figure 1. Comparison of coefficients from informative and non-informative models of the synthetic NZ sample")
 ```
 
-Figure 1. indicates how extreme our priors are, if the midpoints of our coefficients have huge shifts between an informed and non-informed model, we may want to adjust our priors by increasing the error. Another way to visualise the effect of the priors is using the `hypothesis()` function in the `brms` package. You can test your assumption that an effect has over a give probability, or is higher than some other distribution (e.g. an alternatively hypothesised model). See below we plot the prior and posterior distributions for the effect of homosexuals having greater than log odds of zero in regards to their risk of stress.
+Figure 1. indicates how influence our priors have, if the midpoints of our coefficients have huge shifts between an informed and non-informed model, we may want to adjust our priors by increasing the error. Another way to visualise the effect of the priors is using the `hypothesis()` function in the `brms` package. You can test your assumption that an effect has over a give probability, or is higher than some other distribution (e.g. an alternatively hypothesised model). See below we plot the prior and posterior distributions for the effect of homosexuals having greater than log odds of zero in regards to their risk of stress. In Figure 1., we see the informed coefficient and its credible interval sit within the non-informed credible interval, then in Figure 2., we see the posterior sits within the prior. We may also consider it evidence that the prior is not being too informative because the posterior has less variance than the prior, as opposed to the posterior taking the exact same form of the prior. 
 
 ```{r priorGraph}
 plot(hypothesis(brms.nz, "sexidentGayDLesbian > 0"))
 ```
+
+Any other effects can be tested in the same way, and you can also conduct a sensitivity analysis by re-running models with different priors. Running a range of different priors will give richer information into how the posterior is being affected by our prior information in the context of our observed NZ dataset.
 
 ### Mediation model
 
