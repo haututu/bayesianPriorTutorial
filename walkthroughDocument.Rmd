@@ -188,4 +188,12 @@ Any other effects can be tested in the same way, and you can also conduct a sens
 
 ### Mediation model
 
+When using informed priors, your models do not necessarily need to be identical. We have already mentioned that the variables can differ conceptually, such as family income in the US data and deprivation index in the NZ data. However, we can go further and apply information from a simple logistic regression model (US model) and apply it to a more complex structural equation model, e.g., a simple mediation (Figure X).
+
+<center>![mediationModel](walkthroughDocument_files/mediationImage.jpg)</center>
+
+In this example, we wanted to determine if, and to what extent, stress could mediate the relationship between SM status and hazardous drinking in the New zealand population. We calculated the mediation effect using the Sobel product of coefficients (`a` path multiplied by `b` path). Our US data can inform our `b` path and its covariates, which can then decrease the variance in our mediation effect.
+
+
+
 ## Conclusions
