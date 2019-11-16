@@ -194,6 +194,32 @@ When using informed priors, your models do not necessarily need to be identical.
 
 In this example, we wanted to determine if, and to what extent, stress could mediate the relationship between SM status and hazardous drinking in the New zealand population. We calculated the mediation effect using the Sobel product of coefficients (`a` path multiplied by `b` path). Our US data can inform our `b` path and its covariates, which can then decrease the variance in our mediation effect.
 
+In `brms` we can include multiple regressions within the same model by wrapping the `bf()` function around each equation. We can run a simple mediation by using the following layout.
+
+```{r exampleMed, eval=FALSE}
+brm(
+  bf(outcome ~ mediator + treatment + covariates) + 
+    bf(mediator ~ treatment + covariates),
+  priors = priors,
+  family = distribution(),
+  data = df
+  )
+```
+
+Which, with our current variables, we can use our same priors for our mediator equation by specifying which priors are pertaining to each response (in this case only the mediator, stress).
+
+```{r appliedMed, eval=FALSE}
+brm.mediation <- brm(
+  bf(hazardous ~ k10high + age + sex * sexident + nzdep2013) +
+    bf(k10high ~ age + sex * sexident + nzdep2013),
+  priors = priors.med,
+  family = bernoulli(),
+  chains = 4,
+  cores = 4,
+  data = syntheticNz
+)
+```
+
 
 
 ## Conclusions
