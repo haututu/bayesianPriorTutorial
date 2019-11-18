@@ -190,7 +190,7 @@ Any other effects can be tested in the same way, and you can also conduct a sens
 
 When using informed priors, your models do not necessarily need to be identical. We have already mentioned that the variables can differ conceptually, such as family income in the US data and deprivation index in the NZ data. However, we can go further and apply information from a simple logistic regression model (US model) and apply it to a more complex structural equation model, e.g., a simple mediation (Figure X).
 
-<center>![mediationModel](walkthroughDocument_files/mediationImage.jpg)</center>
+<center>![mediationModel](walkthroughDocument_files/mediation.svg)</center>
 
 In this example, we wanted to determine if, and to what extent, stress could mediate the relationship between SM status and hazardous drinking in the New zealand population. We calculated the mediation effect using the Sobel product of coefficients (`a` path multiplied by `b` path). Our US data can inform our `b` path and its covariates, which can then decrease the variance in our mediation effect.
 
@@ -206,13 +206,26 @@ brm(
   )
 ```
 
-Which, with our current variables, we can use our same priors for our mediator equation by specifying which priors are pertaining to each response (in this case only the mediator, stress).
+In the NZ mediation model, we can use the same priors used previously except we need to specify which equation the priors address, using the `resp` argument.
 
-```{r appliedMed, eval=FALSE}
+```{r appliedMed, cache=TRUE}
+
+# Same priors, using the 'resp' argument
+priors_mediation <- c(
+  prior("normal(-1.97, 0.5)", coef="age", resp="k10high"),
+  prior("normal(-0.29, 0.1)", coef="sexM", resp="k10high"),
+  prior("normal(-0.91, 0.4)", coef="nzdep2013", resp="k10high"),
+  prior("normal(1.03, 0.18)", coef="sexidentGayDLesbian", resp="k10high"),
+  prior("normal(1.18, 0.18)", coef="sexidentBisexual", resp="k10high"),
+  prior("normal(-0.07, 0.2)", coef="sexM:sexidentGayDLesbian", resp="k10high"),
+  prior("normal(-0.01, 0.2)", coef="sexM:sexidentBisexual", resp="k10high")
+)
+
+# Mediation model using NZ data
 brm.mediation <- brm(
   bf(hazardous ~ k10high + age + sex * sexident + nzdep2013) +
     bf(k10high ~ age + sex * sexident + nzdep2013),
-  priors = priors.med,
+  prior = priors_mediation,
   family = bernoulli(),
   chains = 4,
   cores = 4,
@@ -220,6 +233,101 @@ brm.mediation <- brm(
 )
 ```
 
+Now that we have our results, it is relatively straight forward to estimate a mediating effect (skip ahead if you want a mediating effect but already know, or dont want to know, the details. Bayesian models with MCMC will product a large number of samples with form the posterior distribution. If we multiple the samples from our `a` path and `b` path, then we have a posterior distribution representing our mediation effect (`ab`). The direct effect is simple the `c'` path, meaning the total effect, `c`, is `ab` + `c`. If we divide our mediation effect by the total effect, we can get the proportion mediated (`ab` / `c`). This is a very similar process to a bootstrap approach within a frequentist framework.
 
+In summary...
+
+* `a` is the coefficient for the effect of SM status on stress
+* `b` is the coefficient for the effect of stress on hazardous drinking
+* `c'` is the coefficient for the effect of SM status on hazardous drinking _while controlling for stress_, and is often called the **direct effect**
+
+We can use the MCMC samples to estimate distributions for each effect as follows...
+
+* `ab` is just samples for `a` and `b` multiplied together and gives the **indirect effect**
+* `c` is derived by adding `ab` and `c` to give the **total effect**
+* **proportion mediated** is calculated by dividing the **indirect effect** by the **total effect**
+
+In practice, we can use a convenient function form the `sjstats` package that will calculate everything for us. As sexual identity is categorical, we need to enter each separately.
+
+```{r mediatingEffect}
+sjstats::mediation(
+  brm.mediation,
+  treatment = "sexidentGayDLesbian",
+  mediator = "k10high",
+  prob = 0.95)
+
+sjstats::mediation(
+  brm.mediation,
+  treatment = "sexidentBisexual",
+  mediator = "k10high",
+  prob = 0.95)
+```
+
+We now run a naive analysis and constructed some code to convert our outputs to a dataframe for graphing. We see in the output below, the 95% credible interval and median for each effect is ploted seperately and compared between non-informed and informed models. Unsurprisingly, we see no difference in the direct effect, which had no priors. However, there is a large reduction in the credible intervals for the indirect effect. Recall we had priors for the `a` path, and the indirect effect is the product of the `a` and `b` paths. It should also be intuitive that our total effect and proportion mediated are also reduced for a similar reason.
+
+```{r naiveMediation, cache=TRUE}
+brm.mediation.naive <- brm(
+  bf(hazardous ~ k10high + age + sex * sexident + nzdep2013) +
+    bf(k10high ~ age + sex * sexident + nzdep2013),
+  prior = prior("normal(0, 5)", class="b"),
+  family = bernoulli(),
+  chains = 4,
+  cores = 4,
+  data = syntheticNz
+)
+```
+
+```{r plots}
+mediation_data <- bind_rows(
+  sjstats::mediation(
+  brm.mediation,
+  treatment = "sexidentGayDLesbian",
+  mediator = "k10high",
+  prob = 0.95) %>%
+  data.frame() %>%
+  mutate(identity = "homosexual",
+         model = "informed"
+         ),
+sjstats::mediation(
+  brm.mediation,
+  treatment = "sexidentBisexual",
+  mediator = "k10high",
+  prob = 0.95) %>%
+  data.frame() %>%
+  mutate(identity = "bisexual",
+         model = "informed"
+         ),
+sjstats::mediation(
+  brm.mediation.naive,
+  treatment = "sexidentGayDLesbian",
+  mediator = "k10high",
+  prob = 0.95) %>%
+  data.frame() %>%
+  mutate(identity = "homosexual",
+         model = "non-informed"
+         ),
+sjstats::mediation(
+  brm.mediation.naive,
+  treatment = "sexidentBisexual",
+  mediator = "k10high",
+  prob = 0.95) %>%
+  data.frame() %>%
+  mutate(identity = "bisexual",
+         model = "non-informed"
+         )
+)
+
+mediation_data %>%
+  filter(effect != "mediator") %>%
+  ggplot(aes(x=identity, y=value, ymin=hdi.low, ymax=hdi.high, group=model, color=model, linetype=model)) +
+  geom_point() +
+  geom_errorbar() +
+  facet_wrap(~effect,
+             scales="free_y")
+```
 
 ## Conclusions
+
+In this walkthrough, we have given a brief overview on how to run a basic Bayesian logistic regression, and use results to inform a similar analysis on a smaller sample. The method is quite generalisable, in that you could run a regular regression model by using `normal()` instead of `bernoulli()` and could use any combination of covariates and levels of informativeness. In a more thorough approach, however, we would also advise conducting a sensitivity analysis. In a sensitivity analysis, you can use different levels of informativeness to understand the impact of your priors, and it is simple, albeit time consuming to complete. When conducting your own study, produce the non-informed analysis at a minimum and then you could also consider attaching the sensitivity analyses as a supplementary or make it available via OSF or GitHub (the latter if you wish to include the models which can be quite large).
+
+Consult the short `R` code we have made available and tweak it to understand what is happening. Also use summary functions such as `marginal_effects()` and `summary()` to further investigate models produced from our sample data.
