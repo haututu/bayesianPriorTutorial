@@ -1,6 +1,6 @@
 ---
 title: "Tutorial for the construction of informative Bayesian priors: Leveraging information from large samples to improve estimation of effects with small samples"
-author: "Taylor Winter"
+author: "Taylor Winter and Benjamin Riordan"
 date: "`r Sys.Date()`"
 output:
   rmdformats::readthedown:
