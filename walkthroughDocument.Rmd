@@ -16,11 +16,12 @@ opts_chunk$set(echo = TRUE)
 theme_set(theme_classic())
 ```
 
+
 ## Overview
 
-This document is a supplementary tutorial document associated with a paper published in the journal Addiction[^1] and accompanying R code placed on [GitHub](https://github.com/haututu/bayesianPriorTutorial). In our published paper, we use a large dataset to investigate if sexual minorities (SMs) are at higher risk of psychological distress relative to non-SMs  (nSMs). On the basis of the parameters derived from the large dataset, we construct priors and then run a similar model using a smaller different dataset. Lastly, we use the priors to inform part of a mediation analysis to obtain a more reliable understanding on how much stress can mediate the increased likelihood of hazardous drinking expressed by SMs relative to nSMs
+This document is a supplementary tutorial associated with a paper published in the journal Addiction[^1] and the accompanying R code placed on [GitHub](https://github.com/haututu/bayesianPriorTutorial). In our published paper, we use a large dataset to investigate if sexual minorities (SMs) are at higher risk of psychological distress relative to non-SMs  (nSMs). On the basis of the parameters derived from the large dataset, we construct priors and then run a similar model using a smaller different dataset. Lastly, we use the priors to inform part of a mediation analysis to obtain a more reliable understanding on how much stress can mediate the increased likelihood of hazardous drinking expressed by SMs relative to non-SMs in Aotearoa New Zealand.
 
-In the associated manuscript, we used the [National Survey on Drug Use and Health](https://nsduhweb.rti.org/respweb/homepage.cfm) (NSDUH; n = 83,661) to inform our smaller survey, the [New Zealand Health Survey](https://www.health.govt.nz/nz-health-statistics/national-collections-and-surveys/surveys/new-zealand-health-survey) (NZHS, n=24098). In the former case, the dataset is huge, and in the latter, the data is provided by applying to the New Zealand Ministry of Health. Hence, we have created smaller datasets for demonstration purposes that show similar trends to data presented in our associated manuscript (See `makeSyntheticData.R` for details on how we created these datasets).
+In the associated manuscript, we used the [National Survey on Drug Use and Health](https://nsduhweb.rti.org/respweb/homepage.cfm) (NSDUH; n = 83,661) to inform our smaller survey, the [New Zealand Health Survey](https://www.health.govt.nz/nz-health-statistics/national-collections-and-surveys/surveys/new-zealand-health-survey) (NZHS, n=24098). In the former case, the dataset is large and publicly available and, in the latter, the data is provided by applying to the New Zealand Ministry of Health. For the purposes of this tutorial, we have created smaller datasets that show similar trends to data presented in our associated manuscript (See `makeSyntheticData.R` for details on how we created these datasets).
 
 The analysis relies on the `tidyverse` and a Bayesian regression package called `brms`[^2]. The present document, constrained for brevity, does not describe these packages, and we would encourage readers to consult the `brms` vignettes or any basic R tutorial for `tidyverse` walkthroughs.
 
@@ -46,6 +47,8 @@ library(brms)
 syntheticUs <- readRDS("data/syntheticUs.RDS") %>%
   sample_frac(0.4)
 ```
+
+Taylor - is this working?
 
 ### Constructing priors
 
@@ -92,7 +95,7 @@ As a couple of added tips, the extracted table is produced using `fixef(brms.us)
 
 ## Modelling New Zealand data (NZHS)
 
-We will break the following section up by first constructing the priors, running the same model in the NZ data that we presented above, then running a more complex analysis, i.e., mediation. The code we are describing is presented in the `nzModel.R` script. You can start by loading the NZ data with the following code.
+We will break the following section up by first constructing the priors, running the same model in the NZ data that we presented above, then running a more complex analysis (i.e., mediation). The code we are describing is presented in the `nzModel.R` script. You can start by loading the NZ data with the following code.
 
 ```{r}
 syntheticNz <- readRDS("data/syntheticNz.RDS")
@@ -179,7 +182,7 @@ fixef(brms.nz) %>%
   coord_flip()
 ```
 
-Figure 1. indicates how much influence our priors have. If the midpoints of our coefficients exhibit large shifts between the informed and non-informed models, we may want to adjust our priors by increasing the error. Another way to visualise the effect of the priors is using the `hypothesis()` function in the `brms` package shown in Figure 1. You can test your assumption that an effect has over a given probability, or is higher than some other distribution (e.g., an alternatively hypothesised model). See below we plot the prior and posterior distributions for the effect of homosexuals having greater than log odds of zero in regards to their risk of stress. In Figure 1, we see the informed coefficient and its credible interval sit within the non-informed credible interval, then in Figure 2, we see the posterior sits very similar to the prior. We may also consider it evidence that the prior is not being too informative because the posterior has less variance than the prior, as opposed to the posterior taking the exact same form of the prior. 
+Figure 1. indicates how much influence our priors have. If the midpoints of our coefficients exhibit large shifts between the informed and non-informed models, we may want to adjust our priors by increasing the error. Another way to visualise the effect of the priors is using the `hypothesis()` function in the `brms` package shown in Figure 1. You can test your assumption that an effect has over a given probability, or is higher than some other distribution (e.g., an alternatively hypothesised model). For example, below we plot the prior and posterior distributions for the effect of homosexuals having greater than log odds of zero in regards to their risk of stress. In Figure 1, we see the informed coefficient and its credible interval sit within the non-informed credible interval, then in Figure 2, we see the posterior sits very similar to the prior. We may also consider it evidence that the prior is not being too informative because the posterior has less variance than the prior, as opposed to the posterior taking the exact same form of the prior. 
 
 **Figure 2.** Posterior distribution for the effect of homosexuality on the log odds of stress relative to heterosexuals
 
@@ -238,7 +241,7 @@ brm.mediation <- brm(
 )
 ```
 
-Now that we have our results, it is relatively straight forward to estimate a mediating effect (skip ahead if you want a mediating effect but already know, or dont want to know, the details. Bayesian models with MCMC will product a large number of samples with form the posterior distribution. If we multiple the samples from our `a` path and `b` path, then we have a posterior distribution representing our mediation effect (`ab`). The direct effect is simple the `c'` path, meaning the total effect, `c`, is `ab` + `c`. If we divide our mediation effect by the total effect, we can get the proportion mediated (`ab` / `c`). This is a very similar process to a bootstrap approach within a frequentist framework.
+Now that we have our results, it is relatively straight forward to estimate a mediating effect (skip ahead if you want a mediating effect but already know or do not want to know the details). Bayesian models with MCMC will produce a large number of samples with form the posterior distribution. If we multiple the samples from our `a` path and `b` path, then we have a posterior distribution representing our mediation effect (`ab`). The direct effect is simple the `c'` path, meaning the total effect, `c`, is `ab` + `c`. If we divide our mediation effect by the total effect, we can get the proportion mediated (`ab` / `c`). This is a very similar process to a bootstrap approach within a frequentist framework.
 
 In summary...
 
@@ -333,7 +336,7 @@ mediation_data %>%
              scales="free_y")
 ```
 
-## Conclusions
+## Conclusion
 
 In this walkthrough, we have given a brief overview on how to run a basic Bayesian logistic regression, and use results to inform a similar analysis on a smaller sample. The method is quite generalisable, in that you could run a regular regression model by using `normal()` instead of `bernoulli()` and could use any combination of covariates and levels of informativeness. In a more thorough approach, however, we would also advise conducting a sensitivity analysis. In a sensitivity analysis, you can use different levels of informativeness to understand the impact of your priors, and it is simple, albeit time consuming to complete. When conducting your own study, produce the non-informed analysis at a minimum and then you could also consider attaching the sensitivity analyses as a supplementary or make it available via OSF or GitHub (the latter if you wish to include the models which can be quite large).
 
