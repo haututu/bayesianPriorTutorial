@@ -1,4 +1,12 @@
 base
+methods
+datasets
+utils
+grDevices
+graphics
+stats
+knitr
+kableExtra
 tidyverse
 ggplot2
 tibble
@@ -10,5 +18,3 @@ stringr
 forcats
 Rcpp
 brms
-knitr
-kableExtra
