@@ -1,6 +1,6 @@
 ---
 title: "Tutorial for the construction of informative Bayesian priors: Leveraging information from large samples to improve estimation of effects with small samples"
-author: "Taylor Winter and Benjamin Riordan"
+author: "Taylor Winter, Benjamin Riordan, Anthony Surace, & Paul Jose"
 date: "`r Sys.Date()`"
 output:
   rmdformats::readthedown:
@@ -11,7 +11,7 @@ output:
 library(knitr)
 library(kableExtra)
 library(tidyverse)
-opts_chunk$set(echo = TRUE)
+opts_chunk$set(echo = TRUE, message=FALSE)
 
 theme_set(theme_classic())
 ```
@@ -21,7 +21,7 @@ theme_set(theme_classic())
 
 This document is a supplementary tutorial associated with a paper published in the journal Addiction[^1] and the accompanying R code placed on [GitHub](https://github.com/haututu/bayesianPriorTutorial). In our published paper, we used a large dataset to investigate if sexual minorities (SMs) are at higher risk of psychological distress relative to heterosexuals. On the basis of the parameters derived from the large dataset, we construct priors and then produced a similar model using a smaller different dataset. Lastly, we use the priors to inform part of a mediation analysis to obtain a more reliable understanding on how much stress can mediate the increased likelihood of hazardous drinking expressed by SMs relative to heterosexuals in Aotearoa New Zealand.
 
-In the associated manuscript, we used the [National Survey on Drug Use and Health](https://nsduhweb.rti.org/respweb/homepage.cfm) (NSDUH; n = 83,661) to inform our smaller survey, the [New Zealand Health Survey](https://www.health.govt.nz/nz-health-statistics/national-collections-and-surveys/surveys/new-zealand-health-survey) (NZHS, n=24098). In the former case, the dataset is large and publicly available. In the latter, the data is provided by applying to the New Zealand Ministry of Health. For the purposes of this tutorial, we have created smaller datasets that show similar trends to data presented in our associated manuscript, data does _not_ use real cases from the surveys in order to protect confidentiality (See `makeSyntheticData.R` for details on how we created these datasets).
+In the associated manuscript, we used the [National Survey on Drug Use and Health](https://nsduhweb.rti.org/respweb/homepage.cfm) (NSDUH; n = 83,661) to inform our smaller survey, the [New Zealand Health Survey](https://www.health.govt.nz/nz-health-statistics/national-collections-and-surveys/surveys/new-zealand-health-survey) (NZHS, n=24098). In the former case, the dataset is large and publicly available. In the latter, the data is provided by applying to the New Zealand Ministry of Health. For the purposes of this tutorial, we have created smaller datasets that show similar trends to data presented in our associated manuscript, data does _not_ use real cases from the surveys in order to protect confidentiality (See `makeSyntheticData.R` for details on how we created these datasets). As we have used fabricated New Zealand data based on our findings in the primary manuscript, the effects do not align exactly and the _estimates provided herein are for demonstration purposes only_.
 
 The analysis relies on the `tidyverse` and a Bayesian regression package called `brms`[^2]. The present document, constrained for brevity, does not describe these packages, and we would encourage readers to consult the `brms` vignettes or any basic R tutorial for `tidyverse` walkthroughs.
 
@@ -40,7 +40,7 @@ We start with the script named `usModel.R`, by loading the necessary libraries a
 4. IRSEX - Categorical sex variable: either male (1) or female (2)
 5. SPDMON - Is a binomial variable denoting an experience of psychological distress in the last six months, either no stress (0) or stress (1)
 
-```{r readUs, message=FALSE}
+```{r readUs}
 library(tidyverse)
 library(brms)
 
@@ -69,7 +69,7 @@ We can now model the US data. If you're familiar with `lme4` syntax, then this i
 
 We then specify the family (response distribution), which is the distribution we believe the dependent variable will take. In this case it is a binomial variable which is best represented by the Bernoulli distribution (analogous to a traditional logistic regression). We parse our priors, and want to sample four chains across four CPU cores. It will take about five minutes to run (Feel free during this time to reflect on our pain when running a sample of over 80,000, which takes considerably longer to compute).
 
-```{r modelUs, cache=FALSE}
+```{r modelUs, cache=TRUE}
 brms.us <- brm(
   SPDMON ~ mo(AGE2) + IRSEX * SEXIDENT + mo(IRFAMIN3),
   family = bernoulli(),
@@ -95,10 +95,7 @@ As a couple of added tips, the extracted table is produced using `fixef(brms.us)
 We will break the following section up by first constructing the priors, running the same model in the NZ data that we presented above, then running a more complex analysis (i.e., mediation). The code we are describing is presented in the `nzModel.R` script. You can start by loading the NZ data with the following code.
 
 ```{r}
-syntheticNz <- readRDS("data/syntheticNz20191204.RDS")
-syntheticNz <- within(syntheticNz, sexident <- relevel(sexident, ref = "Heterosexual"))
-syntheticNz <- within(syntheticNz, sex <- relevel(sex, ref = "M"))
-syntheticNz <- mutate(syntheticNz, rand = runif(1000), k10high = ifelse(hazardous == 1 & k10high == 0 & rand < 0.02, 1, 0))
+syntheticNz <- readRDS("data/syntheticNz.RDS")
 ```
 
 ### Constructing priors
@@ -290,7 +287,7 @@ brm.mediation.naive <- brm(
 
 **Figure 4.** Resulting effects from mediation analysis comparing informed to non-informed estimates for both homosexuals and bisexuals relative to heterosexuals.
 
-```{r plots, echo=FALSE, message=FALSE}
+```{r plots, echo=FALSE}
 mediation_data <- bind_rows(
   sjstats::mediation(
   brm.mediation,

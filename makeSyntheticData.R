@@ -95,6 +95,42 @@ nz.sample <- mutate(
   k10high = ifelse(runif(nz.size) < fitted(nz.mediation, newdata=nz.sample, subset = nz.posteriors$rows)[,1,'k10high'], 1, 0)
   )
 
+########################################### Apply corrections to better simulate the models in the manuscript
+
+# Reset the reference classes to be consistent with the US sample
+nz.sample <- within(nz.sample, sexident <- relevel(sexident, ref = "Heterosexual"))
+nz.sample <- within(nz.sample, sex <- relevel(sex, ref = "M"))
+
+# Set a seed because the next correction is a bit niggly
+set.seed("1234")
+
+# This is tweaking the data to replicate the mediation effect more closely, there are three steps.
+# Note that the data still does not 
+nz.sample <- nz.sample %>%
+  mutate( 
+    rand = runif(1000), 
+    # Create more SM hazardous drinkers to reduce the error on the mediation effect
+    hazardous = case_when(
+      hazardous == 0 & sexident == "Homosexual" & rand < 0.1 ~ 1,
+      hazardous == 0 & sexident == "Bisexual" & rand < 0.1 ~ 1,
+      TRUE ~ hazardous
+    ),
+    # If SM is a hazardous drinker then increase the likelihood they are stressed relative to heterosexuals (inflating 'a' path effect)
+    k10high = case_when(
+      hazardous == 1 & k10high == 0 & sexident == "Homosexual" & rand < 0.3 ~ 1,
+      hazardous == 1 & k10high == 0 & sexident == "Bisexual" & rand < 0.1 ~ 1,
+      TRUE ~ k10high
+    ),
+    # If not a hazardous drinker, reduce likelihood of being stressed to enhance 'a' path effect
+    # Female SMs are disproportionately effected to we reduce the numbe of stressed heterosexual females to maintain the same sex effect on stress
+    k10high = case_when(
+      k10high == 1 & sexident == "Heterosexual" & sex == "F" & rand < 0.2 ~ 0,
+      hazardous == 0 & k10high == 1 & sexident == "Homosexual" & rand < 0.4 ~ 0,
+      hazardous == 0 & k10high == 1 & sexident == "Bisexual" & rand < 0.3 ~ 0,
+      TRUE ~ k10high
+    )
+  )
+
 ########################################### Save datasets
 
 saveRDS(nz.sample, "data/syntheticNz.RDS")
