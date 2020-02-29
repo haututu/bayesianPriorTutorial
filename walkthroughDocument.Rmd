@@ -19,13 +19,13 @@ theme_set(theme_classic())
 
 ## Overview
 
-This document is a supplementary tutorial associated with a paper published in the journal Addiction[^1] and the accompanying R code placed on [GitHub](https://github.com/haututu/bayesianPriorTutorial). In our published paper, we used a large dataset to investigate if sexual minorities (SMs) are at higher risk of psychological distress relative to heterosexuals. On the basis of the parameters derived from the large dataset, we construct priors and then produced a similar model using a smaller different dataset. Lastly, we use the priors to inform part of a mediation analysis to obtain a more reliable understanding on how much stress can mediate the increased likelihood of hazardous drinking expressed by SMs relative to heterosexuals in Aotearoa New Zealand.
+This document is a supplementary tutorial associated with a paper published in the journal Health Education[^1] and the accompanying R code placed on [GitHub](https://github.com/haututu/bayesianPriorTutorial). In our published paper, we used a large dataset to investigate if sexual minorities (SMs) are at higher risk of psychological distress relative to heterosexuals. On the basis of the parameters derived from the large dataset, we construct priors and then produced a similar model using a smaller different dataset. Lastly, we use the priors to inform part of a mediation analysis to obtain a more reliable understanding on how much stress can mediate the increased likelihood of hazardous drinking expressed by SMs relative to heterosexuals in Aotearoa New Zealand.
 
 In the associated manuscript, we used the [National Survey on Drug Use and Health](https://nsduhweb.rti.org/respweb/homepage.cfm) (NSDUH; n = 83,661) to inform our smaller survey, the [New Zealand Health Survey](https://www.health.govt.nz/nz-health-statistics/national-collections-and-surveys/surveys/new-zealand-health-survey) (NZHS, n=24098). In the former case, the dataset is large and publicly available. In the latter, the data is provided by applying to the New Zealand Ministry of Health. For the purposes of this tutorial, we have created smaller datasets that show similar trends to data presented in our associated manuscript, data does _not_ use real cases from the surveys in order to protect confidentiality (See `makeSyntheticData.R` for details on how we created these datasets). As we have used fabricated New Zealand data based on our findings in the primary manuscript, the effects do not align exactly and the _estimates provided herein are for demonstration purposes only_.
 
 The analysis relies on the `tidyverse` and a Bayesian regression package called `brms`[^2]. The present document, constrained for brevity, does not describe these packages, and we would encourage readers to consult the `brms` vignettes or any basic R tutorial for `tidyverse` walkthroughs.
 
-[^1]: Winter, T., Riordan, B., Surace, A., & Jose, P. (In Review). A comparison of Bayesian and classical statistics for substance research with sexual minorities
+[^1]: Winter, T., Riordan, B., Surace, A., & Jose, P. (In Review). A tutorial on the use of informative Bayesian priors for substance research with minority groups
 
 [^2]: Paul-Christian Bürkner (2017). brms: An R Package for Bayesian Multilevel Models Using Stan. Journal of
   Statistical Software, 80(1), 1-28. doi:10.18637/jss.v080.i01
@@ -178,6 +178,7 @@ fixef(brms.nz) %>%
   geom_point() +
   geom_errorbar() +
   coord_flip()
+  
 ```
 
 Figure 1. indicates how much influence our priors have. If the midpoints of our coefficients exhibit large shifts between the informed and non-informed models, we may want to adjust our priors by increasing the error. Another way to visualize the effect of the priors is using the `hypothesis()` function in the `brms` package shown in Figure 1. You can test your assumption that an effect has over a given probability, or is higher than some other distribution (e.g., an alternatively hypothesized model). For example, below we plot the prior and posterior distributions for the effect of homosexuals having greater than log odds of zero in regards to their risk of stress. In Figure 1, we see the informed coefficient and its credible interval sit within the non-informed credible interval, then in Figure 2, we see the posterior sits very similar to the prior. We may also consider it evidence that the prior is not being too informative because the posterior has less variance than the prior, as opposed to the posterior taking the same form of the prior. 
